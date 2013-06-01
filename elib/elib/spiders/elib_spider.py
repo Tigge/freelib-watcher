@@ -8,7 +8,7 @@ from scrapy.spider import BaseSpider
 from scrapy.selector import HtmlXPathSelector
 from scrapy.http import Request, Response
 from scrapy.contrib.loader import ItemLoader
-from scrapy.contrib.loader.processor import Identity, TakeFirst, MapCompose
+from scrapy.contrib.loader.processor import TakeFirst, MapCompose, Join
 
 from elib.items import Book
 
@@ -22,12 +22,12 @@ class BookLoader(ItemLoader):
     default_item_class = Book
     default_output_processor = TakeFirst()
     
-    author_out = Identity()
+    #author_out = Identity()
     
-    publish_date_in = MapCompose(lambda s: datetime.strptime(s, "%Y%m"))
+    publish_date_in = MapCompose(lambda s: datetime.strptime(s, "%Y%m").date())
 
     format_in = MapCompose(lambda f: BookLoader.format_map[f])
-    format_out = Identity()
+    format_out = Join(",")
 
 
 class ElibSpider(BaseSpider):
@@ -40,7 +40,7 @@ class ElibSpider(BaseSpider):
 
     field_map = {u"Titel": "title", u"Författare": "author",
                  u"Förlag": "publisher", u"Språk": "language",
-                 u"Publiceringsdatum": "publish_date", 
+                 u"Kategori": "category", u"Publiceringsdatum": "publish_date",
                  u"Beskrivning": "description", u"Format": "format"}
 
     def parse(self, response):
@@ -51,7 +51,6 @@ class ElibSpider(BaseSpider):
         next_url = selector.select(u"//a[text()='Nästa >>']/@href").extract()
         if len(next_url) > 0:
             yield Request(urlparse.urljoin(response.url, next_url[0]))
-            pass
         
         # Parse all books
         for book_url in selector.select("//table[@class='MainTable']/tr/td/table/tr/td[1]/a/@href").extract():
@@ -67,7 +66,7 @@ class ElibSpider(BaseSpider):
         for row in rows:
 
             header = row.select(".//span[@class='BodytextHeadingTable']/text()").extract()
-            data   = row.select(".//span[@class='Bodytext' or @class='BodytextBold' or @class='BodytextLink']")
+            data   = row.select(".//*[@class='Bodytext' or @class='BodytextBold' or @class='BodytextLink']")
             
             if len(header) == 1:
                 header = header[0][:-1]
