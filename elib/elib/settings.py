@@ -14,3 +14,7 @@ NEWSPIDER_MODULE = 'elib.spiders'
 USER_AGENT = 'freelib-watcher/0.1 (+https://github.com/Tigge/freelib-watcher)'
 
 LOG_FILE="scrapy.log"
+
+ITEM_PIPELINES = [
+    'elib.pipelines.SQLitePipeline'
+]
