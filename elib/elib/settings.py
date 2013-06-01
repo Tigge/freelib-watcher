@@ -11,5 +11,6 @@ BOT_NAME = 'elib'
 SPIDER_MODULES = ['elib.spiders']
 NEWSPIDER_MODULE = 'elib.spiders'
 
-# Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = 'elib (+http://www.yourdomain.com)'
+USER_AGENT = 'freelib-watcher/0.1 (+https://github.com/Tigge/freelib-watcher)'
+
+LOG_FILE="scrapy.log"
