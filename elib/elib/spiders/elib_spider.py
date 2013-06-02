@@ -9,6 +9,8 @@ from scrapy.selector import HtmlXPathSelector
 from scrapy.http import Request, Response
 from scrapy.contrib.loader import ItemLoader
 from scrapy.contrib.loader.processor import TakeFirst, MapCompose, Join
+from scrapy.exceptions import CloseSpider
+from scrapy import log
 
 from elib.items import Book
 
@@ -33,24 +35,33 @@ class BookLoader(ItemLoader):
 class ElibSpider(BaseSpider):
     name = "elib"
     allowed_domains = ["elib.se"]
-    start_urls = [
-        #"http://elib.se/library/dynamic_page.asp?page=O&lib=40"
-        "http://www.elib.se/library/search.asp?title=&author=&isbn=&publisher=&lang=SE&typ50=50&typ58=58&lib=40&option=&secondrun=YES"
-    ]
 
     field_map = {u"Titel": "title", u"Författare": "author",
                  u"Förlag": "publisher", u"Språk": "language",
                  u"Kategori": "category", u"Publiceringsdatum": "publish_date",
                  u"Beskrivning": "description", u"Format": "format"}
 
+    URL = {"all": "http://www.elib.se/library/search.asp?title=&author=&isbn=&publisher=&lang=SE&typ50=50&typ58=58&lib=40&option=&secondrun=YES",
+           "updates": "http://elib.se/library/dynamic_page.asp?page=O&lib=40"}
+
+    def __init__(self, mode="updates"):
+
+        self.mode = mode.lower()
+        if self.mode in self.URL:
+            log.msg("Starting in mode '" + self.mode + "'", level=log.INFO, spider=self)
+            self.start_urls = [self.URL[self.mode]]
+        else:
+            raise CloseSpider("Incorrect 'mode' parameter")
+
     def parse(self, response):
     
         selector = HtmlXPathSelector(response)
     
         # Parse next page
-        next_url = selector.select(u"//a[text()='Nästa >>']/@href").extract()
-        if len(next_url) > 0:
-            yield Request(urlparse.urljoin(response.url, next_url[0]))
+        if (self.mode == "all"):
+            next_url = selector.select(u"//a[text()='Nästa >>']/@href").extract()
+            if len(next_url) > 0:
+                yield Request(urlparse.urljoin(response.url, next_url[0]))
         
         # Parse all books
         for book_url in selector.select("//a[starts-with(@href, 'ebook_detail.asp') and ./img]/@href").extract():
@@ -59,6 +70,7 @@ class ElibSpider(BaseSpider):
     def parse_book(self, response):
 
         isbn = re.findall("id_type=ISBN&id=([0-9xX]+)", response.url)[0]
+        log.msg("Parsing book '" + isbn + "'", level=log.INFO, spider=self)
         loader = BookLoader()
         loader.add_value("isbn", [isbn])
 
