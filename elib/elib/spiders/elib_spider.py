@@ -53,7 +53,7 @@ class ElibSpider(BaseSpider):
             yield Request(urlparse.urljoin(response.url, next_url[0]))
         
         # Parse all books
-        for book_url in selector.select("//table[@class='MainTable']/tr/td/table/tr/td[1]/a/@href").extract():
+        for book_url in selector.select("//a[starts-with(@href, 'ebook_detail.asp') and ./img]/@href").extract():
             yield Request(urlparse.urljoin(response.url, book_url), callback=self.parse_book)
 
     def parse_book(self, response):
