@@ -23,14 +23,15 @@ class BookLoader(ItemLoader):
 
     default_item_class = Book
     default_output_processor = TakeFirst()
-    
-    #author_out = Identity()
-    
+
+    author_out = TakeFirst() # Ignore other than first
+
     publish_date_in = MapCompose(lambda s: datetime.strptime(s, "%Y%m").date())
 
     format_in = MapCompose(lambda f: BookLoader.format_map[f])
-    format_out = Join(",")
+    format_out = Join(", ")
 
+    category_out = Join(", ")
 
 class ElibSpider(BaseSpider):
     name = "elib"
@@ -86,6 +87,8 @@ class ElibSpider(BaseSpider):
                 if header in self.field_map:
                     if header == "Format":
                         value = data.select("img/@src").extract()
+                    if header == "Kategori":
+                        value = data.select("a/text()").extract()
                     loader.add_value(self.field_map[header], value)
                 if header == "ID":
                     loader.add_value("isbn_13", [re.findall("ISBN13:([0-9\-]+)", value[0])[0].replace("-", "")])
